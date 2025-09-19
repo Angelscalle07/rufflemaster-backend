@@ -7,8 +7,11 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\RifaController;
 use App\Http\Controllers\BoletoController;
 use App\Http\Controllers\UsuarioController;
-use App\Models\Boleto;
 
+Route::post('/usuarios/ping', [UsuarioController::class, 'ping']);
+Route::get('/usuarios/activos', [UsuarioController::class, 'activos']);
+Route::get('/rifas/{id}/resultados', [RifaController::class, 'resultados']);
+Route::post('/rifas/{id}/jugar', [RifaController::class, 'jugar']);
 Route::post('/update-wallet', [UsuarioController::class, 'updateWallet']);
 Route::get('/rifas', [RifaController::class, 'index']);
 Route::post('/rifas', [RifaController::class, 'store']);

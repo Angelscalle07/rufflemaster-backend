@@ -24,4 +24,25 @@ class UsuarioController extends Controller
             'user' => $user
         ]);
     }
+
+    private static $activos = [];
+
+    public function ping(Request $request)
+    {
+        $usuarioId = $request->usuario_id;
+        self::$activos[$usuarioId] = now()->timestamp;
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    public function activos()
+    {
+    
+    $usuarios = \App\Models\Usuario::where('rol', 'participante')->get();
+
+    return response()->json($usuarios);
+    }
+
+
+
 }

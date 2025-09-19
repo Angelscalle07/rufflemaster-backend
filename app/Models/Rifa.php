@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Boleto;
 
 
 class Rifa extends Model
@@ -25,6 +26,11 @@ class Rifa extends Model
     public function boletos()
     {
         return $this->hasMany(Boleto::class, 'rifa_id');
+    }
+
+    public function ganadorBoleto()
+    {
+        return $this->belongsTo(Boleto::class, 'ganador_boleto_id');
     }
 
 }

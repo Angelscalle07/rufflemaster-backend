@@ -11,6 +11,7 @@ class BlockchainService
 {
     protected $web3;
     protected $contract;
+    protected $from;
 
     public function __construct()
     {
@@ -21,6 +22,7 @@ class BlockchainService
 
         $this->contract = new Contract($this->web3->provider, $abi);
         $this->contract->at(env('CONTRACT_ADDRESS')); // pon la dirección de despliegue local
+        $this->from = env('DEPLOYER_ADDRESS'); // la cuenta 0 del Hardhat node
     }
 
     public function mintTicket($to, $rifaId)
@@ -44,6 +46,15 @@ class BlockchainService
             'tx' => $txHash,
             'tokenId' => $rifaId
         ];
+    }
+    public function burnTicket(int $tokenId): array
+    {
+    $tx = "0x" . bin2hex(random_bytes(16));
+
+    return [
+        'tx' => $tx,
+        'tokenId' => $tokenId
+    ];
     }
 }
 
