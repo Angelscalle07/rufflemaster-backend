@@ -31,7 +31,6 @@ class BoletoController extends Controller
         return response()->json(['error' => '⚠️ Usuario no tiene wallet asociada'], 400);
     }
 
-    // Guardar boleto en BD
     $boleto = Boleto::create([
         'usuario_id' => $usuario->id,
         'rifa_id' => $request->rifa_id,
@@ -64,7 +63,6 @@ class BoletoController extends Controller
 
     public function play(Request $request, $rifa_id)
     {
-        // Autorización: user admin o header secreto
         $user = $request->user();
         if ($user) {
             $isAdmin = (isset($user->is_admin) && $user->is_admin) || (isset($user->role) && $user->role === 'admin');
@@ -135,7 +133,6 @@ class BoletoController extends Controller
         $blockchain = new \App\Services\BlockchainService();
         $result = $blockchain->burnTicket($boleto->token_id);
 
-        // 🔹 Borrar de la BD
         $boleto->delete();
 
         return response()->json([

@@ -8,6 +8,8 @@ use App\Http\Controllers\RifaController;
 use App\Http\Controllers\BoletoController;
 use App\Http\Controllers\UsuarioController;
 
+Route::put('/rifas/{id}/finalizar', [RifaController::class, 'finalizarRifa']);
+Route::get('/usuarios/{id}', [UsuarioController::class, 'show']);
 Route::post('/usuarios/ping', [UsuarioController::class, 'ping']);
 Route::get('/usuarios/activos', [UsuarioController::class, 'activos']);
 Route::get('/rifas/{id}/resultados', [RifaController::class, 'resultados']);
@@ -20,5 +22,6 @@ Route::delete('/rifas/{id}', [RifaController::class, 'destroy']);
 Route::post('/boletos', [BoletoController::class, 'store']);
 Route::get('/boletos/{usuario_id}', [BoletoController::class, 'index']);
 Route::delete('/boletos/{id}', [BoletoController::class, 'destroy']);
+Route::put('/usuarios/{id}', [UsuarioController::class, 'updatePerfil']);
 Route::post('/login', [LoginController::class, 'iniciarSesion']);
 Route::post('/register', [RegistroController::class, 'registrar']);

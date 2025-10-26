@@ -10,17 +10,43 @@ class RifaController extends Controller
 {
     public function index()
     {
-        return response()->json(Rifa::all(), 200);
+        $hoy = now();
+
+        $rifas = Rifa::all()->map(function ($rifa) use ($hoy) {
+            if ($rifa->ganador_boleto_id) {
+                $rifa->estado_real = 'finalizada';
+            } elseif ($hoy->greaterThan($rifa->fecha_fin)) {
+                $rifa->estado_real = 'pendiente_jugar';
+            } else {
+                $rifa->estado_real = 'activa';
+            }
+            return $rifa;
+        });
+
+        return response()->json($rifas, 200);
     }
 
     public function activas()
     {
-        return response()->json(
-            Rifa::where('estado', 'activa')->get(),
-            200
-        );
+        $hoy = now();
+
+        $rifas = Rifa::where('estado', 'activa')
+            ->whereDate('fecha_fin', '>=', $hoy)
+            ->get()
+            ->map(function ($rifa) use ($hoy) {
+                if ($rifa->ganador_boleto_id) {
+                    $rifa->estado_real = 'finalizada';
+                } elseif ($hoy->greaterThan($rifa->fecha_fin)) {
+                    $rifa->estado_real = 'pendiente_jugar';
+                } else {
+                    $rifa->estado_real = 'activa';
+                }
+                return $rifa;
+            });
+
+        return response()->json($rifas, 200);
     }
-    
+
     public function store(Request $request)
     {
         $request->validate([
@@ -43,7 +69,6 @@ class RifaController extends Controller
     public function update(Request $request, $id)
     {
         $rifa = Rifa::findOrFail($id);
-
         $rifa->update($request->all());
 
         return response()->json(['mensaje' => 'Rifa actualizada', 'data' => $rifa]);
@@ -57,50 +82,54 @@ class RifaController extends Controller
 
     public function jugar($id)
     {
-    $rifa = Rifa::findOrFail($id);
+        $rifa = Rifa::findOrFail($id);
 
-    if ($rifa->estado === 'finalizada') {
-        return response()->json(['error' => 'La rifa ya fue jugada'], 400);
-    }
+        if ($rifa->estado === 'finalizada' || $rifa->ganador_boleto_id) {
+            return response()->json(['error' => 'La rifa ya fue jugada'], 400);
+        }
 
-    $boletos = Boleto::where('rifa_id', $rifa->id)->get();
+        $boletos = Boleto::where('rifa_id', $rifa->id)->get();
 
-    if ($boletos->count() === 0) {
+        if ($boletos->count() === 0) {
+            $rifa->estado = 'finalizada';
+            $rifa->save();
+            return response()->json(['error' => 'La rifa no tiene boletos'], 400);
+        }
+
+        $ganador = $boletos->random();
+
+        $rifa->ganador_boleto_id = $ganador->id;
         $rifa->estado = 'finalizada';
-        $rifa->save();
-        return response()->json(['error' => 'La rifa no tiene boletos'], 400);
-    }
+        $rifa->save();  
 
-    $ganador = $boletos->random();
+        Boleto::where('rifa_id', $rifa->id)->update(['estado' => 'Finalizado']);
 
-    $rifa->ganador_boleto_id = $ganador->id;
-    $rifa->estado = 'finalizada';
-    $rifa->save();
-
-    return response()->json([
-        'mensaje' => '🎉 Rifa jugada con éxito',
-        'rifa' => $rifa,
-        'boleto_ganador' => $ganador,
-        'usuario_ganador' => $ganador->usuario_id,
+        return response()->json([
+            'mensaje' => '🎉 Rifa jugada con éxito',
+            'rifa' => $rifa,
+            'boleto_ganador' => $ganador,
+            'usuario_ganador' => $ganador->usuario_id,
         ]);
     }
 
-    public function resultados()
+    public function resultados() 
     {
-    $rifas = Rifa::with(['ganadorBoleto.usuario'])->get();
+        $rifas = Rifa::with(['ganadorBoleto.usuario'])
+            ->whereNotNull('ganador_boleto_id')
+            ->get();
 
-    $data = $rifas->map(function ($rifa) {
-        return [
-            'id' => $rifa->id,
-            'titulo' => $rifa->titulo,
-            'fecha_fin' => $rifa->fecha_fin,
-            'premio' => $rifa->premio,
-            'ganador' => $rifa->ganadorBoleto 
-                ? $rifa->ganadorBoleto->usuario->nombre 
-                : 'Sin ganador',
-        ];
-    });
+        $data = $rifas->map(function ($rifa) {
+            return [
+                'id' => $rifa->id,
+                'titulo' => $rifa->titulo,
+                'fecha_fin' => $rifa->fecha_fin,
+                'premio' => $rifa->premio,
+                'ganador' => $rifa->ganadorBoleto 
+                    ? $rifa->ganadorBoleto->usuario->nombre 
+                    : 'Sin ganador',
+            ];
+        });
 
-    return response()->json($data, 200);
-    }
+        return response()->json($data, 200);
+    }       
 }
