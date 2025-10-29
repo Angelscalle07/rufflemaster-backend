@@ -7,7 +7,9 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\RifaController;
 use App\Http\Controllers\BoletoController;
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\LogFraudeController;
 
+Route::get('/logs/fraude', [LogFraudeController::class, 'index']);
 Route::put('/rifas/{id}/finalizar', [RifaController::class, 'finalizarRifa']);
 Route::get('/usuarios/{id}', [UsuarioController::class, 'show']);
 Route::post('/usuarios/ping', [UsuarioController::class, 'ping']);
@@ -25,3 +27,10 @@ Route::delete('/boletos/{id}', [BoletoController::class, 'destroy']);
 Route::put('/usuarios/{id}', [UsuarioController::class, 'updatePerfil']);
 Route::post('/login', [LoginController::class, 'iniciarSesion']);
 Route::post('/register', [RegistroController::class, 'registrar']);
+Route::get('/antifraude/datos', function () {
+    $compras = DB::table('boletos')
+                ->select('cantidad')
+                ->pluck('cantidad');
+
+    return response()->json(['transacciones' => $compras]);
+}); 

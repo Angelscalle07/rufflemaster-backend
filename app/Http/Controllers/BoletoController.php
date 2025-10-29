@@ -19,47 +19,78 @@ class BoletoController extends Controller
 {
     public function store(Request $request)
     {
-    $request->validate([
-        'usuario_id' => 'required|exists:usuarios,id',
-        'rifa_id' => 'required|exists:rifas,id',
-        'cantidad' => 'required|integer|min:1',
-    ]);
-
-    $usuario = Usuario::find($request->usuario_id);
-
-    if (!$usuario || !$usuario->wallet_address) {
-        return response()->json(['error' => '⚠️ Usuario no tiene wallet asociada'], 400);
-    }
-
-    $boleto = Boleto::create([
-        'usuario_id' => $usuario->id,
-        'rifa_id' => $request->rifa_id,
-        'cantidad' => $request->cantidad,
-        'estado' => 'Activo',
-        'fecha_compra' => now()
-    ]);
-
-    try {
- 
-        $blockchain = new \App\Services\BlockchainService();
-        $result = $blockchain->mintTicket($usuario->wallet_address, $request->rifa_id);
-
-
-        $boleto->tx_hash = $result['tx'];
-        $boleto->token_id = $result['tokenId'];
-        $boleto->save();
-
-        return response()->json([
-            'mensaje' => '✅ Boleto comprado y NFT minteado',
-            'boleto' => $boleto
+        $request->validate([
+            'usuario_id' => 'required|exists:usuarios,id',
+            'rifa_id' => 'required|exists:rifas,id',
+            'cantidad' => 'required|integer|min:1',
         ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => '❌ Error al mintear NFT',
-            'detalle' => $e->getMessage()
-        ], 500);
+
+        $usuario = Usuario::find($request->usuario_id);
+
+        if (!$usuario || !$usuario->wallet_address) {
+            return response()->json(['error' => '⚠️ Usuario no tiene wallet asociada'], 400);
+        }
+
+        try {
+            $response = Http::post('http://127.0.0.1:5001/analizar', [
+                'transacciones' => [
+                    $request->cantidad,
+                    rand(10, 100), 
+                    rand(5, 50),
+                    rand(20, 200)
+                ]
+            ]);
+
+            $resultado = $response->json();
+            $fraudeDetectado = $resultado['resultado']['anomalia'] ?? false;
+
+            if ($fraudeDetectado) {
+                \Log::warning('⚠️ Posible fraude detectado', [
+                    'usuario_id' => $request->usuario_id,
+                    'rifa_id' => $request->rifa_id,
+                    'detalles' => $resultado
+                ]);
+            } else {
+                \Log::info('✅ Transacción normal', [
+                    'usuario_id' => $request->usuario_id,
+                    'rifa_id' => $request->rifa_id,
+                    'detalles' => $resultado
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('❌ Error al conectar con el modelo antifraude: ' . $e->getMessage());
+        }
+
+        try {
+            $boleto = Boleto::create([
+                'usuario_id' => $usuario->id,
+                'rifa_id' => $request->rifa_id,
+                'cantidad' => $request->cantidad,
+                'estado' => 'Activo',
+                'fecha_compra' => now()
+            ]);
+
+            $blockchain = new \App\Services\BlockchainService();
+            $result = $blockchain->mintTicket($usuario->wallet_address, $request->rifa_id);
+
+            $boleto->tx_hash = $result['tx'];
+            $boleto->token_id = $result['tokenId'];
+            $boleto->save();
+
+            return response()->json([
+                'mensaje' => $fraudeDetectado
+                    ? '⚠️ Compra realizada, pero se detectó una posible anomalía'
+                    : '✅ Boleto comprado y NFT minteado con éxito',
+                'boleto' => $boleto,
+                'fraude' => $fraudeDetectado
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => '❌ Error al mintear NFT',
+                'detalle' => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
     public function play(Request $request, $rifa_id)
     {
