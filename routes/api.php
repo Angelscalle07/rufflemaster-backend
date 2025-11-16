@@ -8,6 +8,7 @@ use App\Http\Controllers\RifaController;
 use App\Http\Controllers\BoletoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\LogFraudeController;
+use App\Http\Controllers\MFAController;
 
 Route::get('/logs/fraude', [LogFraudeController::class, 'index']);
 Route::put('/rifas/{id}/finalizar', [RifaController::class, 'finalizarRifa']);
@@ -27,6 +28,8 @@ Route::delete('/boletos/{id}', [BoletoController::class, 'destroy']);
 Route::put('/usuarios/{id}', [UsuarioController::class, 'updatePerfil']);
 Route::post('/login', [LoginController::class, 'iniciarSesion']);
 Route::post('/register', [RegistroController::class, 'registrar']);
+Route::post('/mfa/generar', [MFAController::class, 'generarSecret']);
+Route::post('/mfa/verificar', [MFAController::class, 'verificar']);
 Route::get('/antifraude/datos', function () {
     $compras = DB::table('boletos')
                 ->select('cantidad')
