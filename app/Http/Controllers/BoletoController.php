@@ -32,12 +32,12 @@ class BoletoController extends Controller
         }
 
         try {
-            $response = Http::post('http://127.0.0.1:5001/analizar', [
+            $response = Http::post('http://192.168.101.70:5001/analizar', [
                 'transacciones' => [
                     $request->cantidad,
-                    rand(10, 100), 
-                    rand(5, 50),
-                    rand(20, 200)
+                    rand(1, 3), 
+                    rand(1, 3),
+                    rand(60, 200)
                 ]
             ]);
 

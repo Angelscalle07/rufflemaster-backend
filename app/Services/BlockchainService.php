@@ -15,7 +15,7 @@ class BlockchainService
 
     public function __construct()
     {
-        $this->web3 = new Web3(new HttpProvider(new HttpRequestManager('http://127.0.0.1:8545', 10)));
+        $this->web3 = new Web3(new HttpProvider(new HttpRequestManager('http://host.docker.internal:8545', 10)));
 
         $abi = file_get_contents(base_path('blockchain/abi/RuffleTicket.json'));
         $abi = json_decode($abi, true);
